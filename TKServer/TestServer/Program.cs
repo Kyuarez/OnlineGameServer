@@ -1,4 +1,4 @@
-﻿namespace Server
+﻿namespace TKNet
 {
     internal class Program
     {

@@ -5,7 +5,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Server
+namespace TKNet
 {
     /// <summary>
     /// TCP 소켓 지원 서버 모듈
@@ -15,6 +15,8 @@ namespace Server
     /// </summary>
     public class CNetworkService
     {
+        private int _connectedCount;
+
         private CListener _clientListener;
 
         //메세지 수신용 pool
@@ -30,7 +32,49 @@ namespace Server
         /// <param name="token"></param>
         public delegate void SessionHandler(CUserToken token);
         public SessionHandler sessionCreatedCallback { get; set; }
-        
+
+        private int maxConnections;
+        private int bufferSize;
+        private readonly int preAllocCount = 2; //read, write
+
+        public CNetworkService()
+        {
+            this._connectedCount = 0;
+            this.sessionCreatedCallback = null;
+        }
+
+        public void Initialize()
+        {
+            this.maxConnections = 10000;
+            this.bufferSize = 1024;
+
+            this._bufferManager = new BufferManager(this.maxConnections * this.bufferSize * this.preAllocCount, this.bufferSize);
+            this._receiveEventArgsPool = new SocketAsyncEventArgsPool(this.maxConnections);
+            this._sendEventArgsPool = new SocketAsyncEventArgsPool(this.maxConnections);
+
+            this._bufferManager.InitBuffer();
+
+            SocketAsyncEventArgs arg;
+
+            //@@수용 가능한 수만큼 연결 토큰을 생성해서, receive, send event들 연결하고 버퍼매니저에 세팅하기
+            for (int i = 0; i < this.maxConnections; i++)
+            {
+                CUserToken token = new CUserToken();
+
+                arg = new SocketAsyncEventArgs();
+                arg.Completed += new EventHandler<SocketAsyncEventArgs>(ReceiveCompleted);
+                arg.UserToken = token;
+                this._bufferManager.SetBuffer(arg);
+                this._receiveEventArgsPool.Push(arg);
+
+                arg = new SocketAsyncEventArgs();
+                arg.Completed += new EventHandler<SocketAsyncEventArgs>(SendCompleted);
+                arg.UserToken = token;
+                this._bufferManager.SetBuffer(arg);
+                this._sendEventArgsPool.Push(arg);
+            }   
+        }
+
         /// <summary>
         /// Listener 생성 및 Listen 호출
         /// </summary>
@@ -43,12 +87,16 @@ namespace Server
 
         public void OnNewClient(Socket clientSocket, object token) 
         {
+            //연결 수 추가
+            Interlocked.Increment(ref this._connectedCount);
+
             SocketAsyncEventArgs receiveArgs = this._receiveEventArgsPool.Pop();
             SocketAsyncEventArgs sendArgs = this._sendEventArgsPool.Pop();
 
-            if(this.sessionCreatedCallback != null) //token을 콜백 파라미터로 세팅
+            CUserToken userToken = null;
+            if (this.sessionCreatedCallback != null) //token을 콜백 파라미터로 세팅
             {
-                CUserToken userToken = receiveArgs.UserToken as CUserToken;
+                userToken = receiveArgs.UserToken as CUserToken;
                 this.sessionCreatedCallback(userToken);
             }
 
@@ -111,6 +159,30 @@ namespace Server
             }
 
             token.OnReceive(args.Buffer, args.Offset, args.BytesTransferred);
+        }
+
+        private void SendCompleted(object sender, SocketAsyncEventArgs args)
+        {
+            CUserToken token = args.UserToken as CUserToken;
+            token.ProcessSend(args);
+        }
+
+        /// <summary>
+        /// 토큰 제거 후, 토큰이 들고있는 eventArgs들 pool로 옮기기
+        /// </summary>
+        /// <param name="token"></param>
+        public void CloseClientSocket(CUserToken token)
+        {
+            //token.OnRemove
+
+            if (this._receiveEventArgsPool != null) 
+            {
+                this._receiveEventArgsPool.Push(token.ReceiveEventArgs);
+            }
+            if (this._sendEventArgsPool != null)
+            {
+                this._sendEventArgsPool.Push(token.SendEventArgs);
+            }
         }
     }
 }

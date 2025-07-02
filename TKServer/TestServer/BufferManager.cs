@@ -5,7 +5,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Server
+namespace TKNet
 {
     /// <summary>
     /// 버퍼 관리 매니저 (버퍼의 전체 크기 = 동시접속 수치 * 버퍼 하나의 크기 * 개수)
