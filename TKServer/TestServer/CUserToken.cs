@@ -16,14 +16,20 @@ namespace TKNet
         private CMessageResolver messageResolver;
         private object sendingLock = new object();
         private Queue<CPacket> sendingQueue;
+        
+        private IPeer peer;
 
         public CUserToken()
         {
             this.sendingLock = new object();
             this.messageResolver = new CMessageResolver();
             this.sendingQueue = new Queue<CPacket>();
+            this.peer = null;
+        }
 
-            //TODO : Peer 세팅
+        public void SetPeer(IPeer peer)
+        {
+            this.peer = peer;
         }
 
         public void SetEventArgs(SocketAsyncEventArgs receiveArgs, SocketAsyncEventArgs sendArgs)
@@ -46,7 +52,20 @@ namespace TKNet
 
         private void OnMessage(Const<byte[]> buffer)
         {
-            //TODO : Peer를 통한 메세지 전송
+            if(this.peer != null)
+            {
+                this.peer.OnMessage(buffer);
+            }
+        }
+
+        public void OnRemoved()
+        {
+            this.sendingQueue.Clear();
+            
+            if(this.peer != null)
+            {   
+                this.peer.OnRemoved();
+            }
         }
 
         public void Send(CPacket msg)
