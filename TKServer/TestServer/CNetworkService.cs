@@ -103,6 +103,24 @@ namespace TKNet
             BeginReceive(clientSocket, receiveArgs, sendArgs);
         }
 
+        /// <summary>
+        /// 클라이언트, 해당 서버 연결 후 호출::개별 클라이언트에게 서버 전송 용 EventArgs들을 세팅한다.
+        /// </summary>
+        public void OnConnectedCompleted(Socket client, CUserToken token)
+        {
+            //client -> server는 개별 2개 만 필요해서 pool이 아닌 각자가 가지게 한다.
+            SocketAsyncEventArgs receiveEventArgs = new SocketAsyncEventArgs();
+            receiveEventArgs.Completed += new EventHandler<SocketAsyncEventArgs>(ReceiveCompleted);
+            receiveEventArgs.UserToken = token;
+            receiveEventArgs.SetBuffer(new byte[1024], 0, 1024);
+
+            SocketAsyncEventArgs sendEventArgs = new SocketAsyncEventArgs();
+            sendEventArgs.Completed += new EventHandler<SocketAsyncEventArgs>(SendCompleted);
+            sendEventArgs.UserToken = token;
+            sendEventArgs.SetBuffer(new byte[1024], 0, 1024);
+            BeginReceive(client, receiveEventArgs, sendEventArgs);
+        }
+
         public void BeginReceive(Socket clientSocket, SocketAsyncEventArgs receiveArgs, SocketAsyncEventArgs sendArgs)
         {
             CUserToken token = receiveArgs.UserToken as CUserToken;

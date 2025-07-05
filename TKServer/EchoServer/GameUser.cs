@@ -19,20 +19,20 @@ namespace EchoServer
             this._token = token;
             this._token.SetPeer(this);
         }
-
+            
         public void OnMessage(Const<byte[]> buffer)
         {
             CPacket msg = new CPacket(buffer.Value, this);
-            Protocols protocol = (Protocols)msg.PopProtocolID();
+            PROTOCOL protocol = (PROTOCOL)msg.PopProtocolID();
 
             switch (protocol)
             {
-                case Protocols.CHAT_MSG_REQ:
+                case PROTOCOL.CHAT_MSG_REQ:
                     {
                         string text = msg.PopString();
                         Console.WriteLine(string.Format("text {0}", text));
 
-                        CPacket response = CPacket.Create((short)Protocols.CHAT_MSG_ACK);
+                        CPacket response = CPacket.Create((short)PROTOCOL.CHAT_MSG_ACK);
                         response.Push(text);
                         Send(response);
                     }
