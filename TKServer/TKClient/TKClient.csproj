@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EchoServer\EchoServer.csproj" />
-    <ProjectReference Include="..\TestServer\TKNet.csproj" />
+    <ProjectReference Include="..\TKNet\TKNet.csproj" />
   </ItemGroup>
 
 </Project>

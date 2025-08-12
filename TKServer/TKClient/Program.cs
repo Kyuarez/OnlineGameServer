@@ -4,6 +4,9 @@
     using System.Net;
     using TKNet;
 
+    /*[클라이언트]
+     */
+
     public class Program
     {
         //@TK : 왜 서버를 리스트로 받지?

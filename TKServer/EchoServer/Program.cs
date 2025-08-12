@@ -1,7 +1,9 @@
 ﻿using TKNet;
 
 namespace EchoServer
-{
+{    
+    /*[서버]
+     */
     public class Program
     {
         private static List<GameUser> userList;
